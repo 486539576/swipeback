@@ -1,0 +1,13 @@
+# 系统层 tweak 的独立构建文件：SwipeBackSB.dylib
+ARCHS = arm64e
+TARGET := iphone:clang:latest:14.0
+
+TWEAK_NAME = SwipeBackSB
+SwipeBackSB_FILES = TweakSB.xm
+SwipeBackSB_CFLAGS = -fobjc-arc
+SwipeBackSB_FRAMEWORKS = UIKit Foundation CoreGraphics
+SwipeBackSB_LIBRARIES = substrate
+SwipeBackSB_LDFLAGS = -Wl,-install_name,@loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries/SwipeBackSB.dylib
+
+include $(THEOS)/makefiles/common.mk
+include $(THEOS_MAKE_PATH)/tweak.mk

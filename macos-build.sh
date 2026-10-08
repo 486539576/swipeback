@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================================
 #  上滑返回 —— macOS 云端构建脚本（GitHub Actions 内执行）
-#  编译 3 个子项目 -> 收集 dylib/bundle -> 补 substrate 依赖为 .jbroot
-#  -> 组装 deb 文件树 -> 打出一个 deb 包（格式不完美没关系，Linux 侧会重打包）
+#  三个独立构建（App层 / 系统层 / 设置bundle）-> 收集产物 -> 补 substrate 依赖
+#  -> 组装 deb 文件树 -> 打出 deb（格式不完美没关系，Linux 侧会干净重打包）
 # ============================================================================
 set -e
 cd "$(dirname "$0")"
@@ -20,9 +20,15 @@ else
     export THEOS="$HOME/theos"
 fi
 
-# ---- 2. 编译 ----
-echo ">>> make..."
-make
+# ---- 2. 编译（三个独立构建，避免子目录）----
+echo ">>> make app..."
+make -f Makefile.app
+echo ">>> make sb..."
+make -f Makefile.sb
+echo ">>> make prefs..."
+make -f Makefile.prefs
+
+OBJ="$ROOT/.theos/obj/arm64e"
 
 # ---- 3. 组装文件树 ----
 STAGE="$ROOT/stage"
@@ -32,16 +38,17 @@ PB="$STAGE/Library/PreferenceBundles/SwipeBackPrefs.bundle"
 PL="$STAGE/Library/PreferenceLoader/Preferences"
 mkdir -p "$DL" "$PB" "$PL"
 
-cp AppTweak/.theos/obj/arm64e/SwipeBackApp.dylib "$DL/"
-cp SBTweak/.theos/obj/arm64e/SwipeBackSB.dylib   "$DL/"
+cp "$OBJ/SwipeBackApp.dylib" "$DL/"
+cp "$OBJ/SwipeBackSB.dylib"   "$DL/"
 cp SwipeBackApp.plist  "$DL/SwipeBackApp.plist"
 cp SwipeBackSB.plist   "$DL/SwipeBackSB.plist"
-cp PrefsBundle/.theos/obj/arm64e/SwipeBackPrefs.bundle/SwipeBackPrefs "$PB/"
-cp PrefsBundle/Root.plist "$PB/Root.plist"
-cp PrefsBundle/SwipeBackPrefs-Info.plist "$PB/Info.plist"
+cp "$OBJ/SwipeBackPrefs.bundle/SwipeBackPrefs" "$PB/SwipeBackPrefs"
+# 用我们自己的 Info.plist 覆盖 theos 生成的，保证 NSPrincipalClass 正确
+cp SwipeBackPrefs-Info.plist "$PB/Info.plist"
+cp Root.plist "$PB/Root.plist"
 cp SwipeBackPrefs.plist "$PL/SwipeBackPrefs.plist"
 
-# ---- 4. 把 substrate 依赖改成 .jbroot（否则 RootHide 下 dyld 找不到）----
+# ---- 4. 把 substrate 依赖改成 .jbroot ----
 echo ">>> patching substrate path..."
 for f in "$DL/SwipeBackApp.dylib" "$DL/SwipeBackSB.dylib"; do
     python3 - "$f" <<'PY'
@@ -55,7 +62,7 @@ print('patched', p)
 PY
 done
 
-# ---- 5. 打 deb（仅作为承载文件树，Linux 侧会干净重打包）----
+# ---- 5. 打 deb ----
 echo ">>> packaging deb..."
 VER="0.2.87"
 CTRL="$STAGE/DEBIAN/control"
@@ -72,7 +79,6 @@ Author: Doubao
 Section: Tweaks
 EOF
 
-# 打包 data 与 control（macOS tar，仅归档，格式交给 Linux 重打包）
 cd "$STAGE"
 tar -czf control.tar.gz DEBIAN
 rm -rf DEBIAN
@@ -80,7 +86,6 @@ find . -type f -print0 | xargs -0 tar -czf data.tar.gz
 
 cd "$ROOT"
 printf '2.0\n' > debian-binary
-cp debian-binary "$STAGE/debian-binary"
 mv "$STAGE/control.tar.gz" .
 mv "$STAGE/data.tar.gz" .
 

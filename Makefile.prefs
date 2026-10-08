@@ -1,0 +1,13 @@
+# 设置界面 bundle 的独立构建文件：SwipeBackPrefs
+ARCHS = arm64e
+TARGET := iphone:clang:latest:14.0
+
+BUNDLE_NAME = SwipeBackPrefs
+SwipeBackPrefs_FILES = Prefs.xm
+SwipeBackPrefs_INSTALL_PATH = /Library/PreferenceBundles
+SwipeBackPrefs_FRAMEWORKS = UIKit Foundation
+SwipeBackPrefs_PRIVATE_FRAMEWORKS = Preferences
+SwipeBackPrefs_CFLAGS = -fobjc-arc
+
+include $(THEOS)/makefiles/common.mk
+include $(THEOS_MAKE_PATH)/bundle.mk
