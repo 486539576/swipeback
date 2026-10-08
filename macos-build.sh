@@ -65,7 +65,8 @@ collect_one() {
 }
 collect_one SwipeBackApp.dylib "$DL/SwipeBackApp.dylib"
 collect_one SwipeBackSB.dylib "$DL/SwipeBackSB.dylib"
-collect_one SwipeBackPrefs "$PB/SwipeBackPrefs"
+# 设置二进制（SwipeBackPrefs）本地打包时用原版双架构文件覆盖，云端收集失败不阻断
+collect_one SwipeBackPrefs "$PB/SwipeBackPrefs" || echo ">>> warn: prefs binary not collected (local packaging will use original dual-arch)"
 cp SwipeBackApp.plist  "$DL/SwipeBackApp.plist"
 cp SwipeBackSB.plist   "$DL/SwipeBackSB.plist"
 # 用我们自己的 Info.plist 覆盖 theos 生成的，保证 NSPrincipalClass 正确
