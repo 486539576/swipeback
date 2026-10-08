@@ -1,5 +1,6 @@
 # App 层 tweak 的独立构建文件：SwipeBackApp.dylib
-ARCHS = arm64e
+# 双架构编译，与原版 Bottom-x roothide 完全一致（arm64 + arm64e）
+ARCHS = arm64 arm64e
 TARGET := iphone:clang:latest:14.0
 
 TWEAK_NAME = SwipeBackApp

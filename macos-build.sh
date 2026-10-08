@@ -33,7 +33,7 @@ if [ -n "$SDKPATH" ]; then
 fi
 make -f Makefile.prefs
 
-OBJ="$ROOT/.theos/obj/debug/arm64e"
+OBJ_BASE="$ROOT/.theos/obj/debug"
 
 # ---- 3. 组装文件树 ----
 STAGE="$ROOT/stage"
@@ -43,11 +43,25 @@ PB="$STAGE/Library/PreferenceBundles/SwipeBackPrefs.bundle"
 PL="$STAGE/Library/PreferenceLoader/Preferences"
 mkdir -p "$DL" "$PB" "$PL"
 
-cp "$OBJ/SwipeBackApp.dylib" "$DL/"
-cp "$OBJ/SwipeBackSB.dylib"   "$DL/"
+# 双架构编译后 theos 可能产出单 universal 或分 arch 多个文件，统一收集
+collect_one() {
+    local name="$1" out="$2"
+    local files n
+    files=$(find "$OBJ_BASE" -name "$name" -type f 2>/dev/null)
+    if [ -z "$files" ]; then echo ">>> ERROR: missing $name"; exit 1; fi
+    n=$(printf '%s\n' "$files" | wc -l | tr -d ' ')
+    if [ "$n" = "1" ]; then
+        cp "$files" "$out"
+    else
+        lipo -create $files -output "$out"
+    fi
+    echo ">>> collected $name -> $out"
+}
+collect_one SwipeBackApp.dylib "$DL/SwipeBackApp.dylib"
+collect_one SwipeBackSB.dylib "$DL/SwipeBackSB.dylib"
+collect_one SwipeBackPrefs "$PB/SwipeBackPrefs"
 cp SwipeBackApp.plist  "$DL/SwipeBackApp.plist"
 cp SwipeBackSB.plist   "$DL/SwipeBackSB.plist"
-cp "$OBJ/SwipeBackPrefs.bundle/SwipeBackPrefs" "$PB/SwipeBackPrefs"
 # 用我们自己的 Info.plist 覆盖 theos 生成的，保证 NSPrincipalClass 正确
 cp SwipeBackPrefs-Info.plist "$PB/Info.plist"
 cp Root.plist "$PB/Root.plist"
