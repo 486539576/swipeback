@@ -7,6 +7,11 @@
 #import <UIKit/UIKit.h>
 #import <substrate.h>
 
+// 告知编译器 SBHomeGesturePanGestureRecognizer 是 UIGestureRecognizer 的子类，
+// 否则 logos 只生成前向声明，无法访问 self.view / self.enabled。
+@interface SBHomeGesturePanGestureRecognizer : UIGestureRecognizer
+@end
+
 static BOOL    gEnabled     = NO;
 static int     gArea        = 2;
 static CGFloat gSensitivity = 0.5f;
