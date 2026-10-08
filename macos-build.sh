@@ -21,9 +21,10 @@ fi
 
 # ---- 2. 编译（三个独立构建，避免子目录）----
 echo ">>> make app..."
-make -f Makefile.app
+# 双架构编译，用 DEBUG=0 关闭 dSYM，避免 theos lipo 合并 universal 时与 dSYM 冲突
+make -f Makefile.app DEBUG=0
 echo ">>> make sb..."
-make -f Makefile.sb
+make -f Makefile.sb DEBUG=0
 echo ">>> make prefs..."
 # 诊断：确认 SDK 私有框架里是否存在 Preferences
 SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo '')"
@@ -31,9 +32,10 @@ echo ">>> SDKPATH=$SDKPATH"
 if [ -n "$SDKPATH" ]; then
     ls "$SDKPATH/System/Library/PrivateFrameworks" 2>/dev/null | grep -i '^Preferences' && echo ">>> Preferences framework PRESENT" || echo ">>> Preferences framework MISSING from SDK"
 fi
-make -f Makefile.prefs
+make -f Makefile.prefs DEBUG=0
 
-OBJ_BASE="$ROOT/.theos/obj/debug"
+# release 模式产物在 .theos/obj 下（collect_one 用 find 定位，兼容 debug/release）
+OBJ_BASE="$ROOT/.theos/obj"
 
 # ---- 3. 组装文件树 ----
 STAGE="$ROOT/stage"
@@ -46,6 +48,10 @@ mkdir -p "$DL" "$PB" "$PL"
 # 双架构编译后 theos 可能产出单 universal 或分 arch 多个文件，统一收集
 collect_one() {
     local name="$1" out="$2"
+    # 优先取 theos 合并好的 universal（.theos/obj 根目录），避免再 lipo 时与各 arch 副本冲突
+    if [ -f "$OBJ_BASE/$name" ]; then
+        cp "$OBJ_BASE/$name" "$out"; echo ">>> collected universal $name -> $out"; return
+    fi
     local files n
     files=$(find "$OBJ_BASE" -name "$name" -type f 2>/dev/null)
     if [ -z "$files" ]; then echo ">>> ERROR: missing $name"; exit 1; fi

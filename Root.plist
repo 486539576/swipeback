@@ -38,7 +38,7 @@
 			<key>key</key>
 			<string>SwipeBackArea</string>
 			<key>label</key>
-			<string>触发角落</string>
+			<string>触发区域（选择上滑生效的角落）</string>
 			<key>default</key>
 			<integer>2</integer>
 			<key>titles</key>
