@@ -11,11 +11,10 @@ ROOT="$(pwd)"
 # ---- 1. 准备 theos ----
 if [ ! -d "$HOME/theos" ]; then
     echo ">>> installing theos..."
+    # --recursive 会把全部子模块（dm.pl/include/lib/logos 等）一并克隆，
+    # 新版 theos 已无根目录 ./bootstrap，无需再执行，直接可用。
     git clone --recursive --depth 1 https://github.com/theos/theos.git "$HOME/theos"
     export THEOS="$HOME/theos"
-    pushd "$THEOS"
-    ./bootstrap --no-curl-cache
-    popd
 else
     export THEOS="$HOME/theos"
 fi
