@@ -102,6 +102,12 @@ static void bxTriggerBack(UIView *view) {
 - (BOOL)gestureRecognizer:(UIGestureRecognizer *)gr shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)other {
     return NO;                            // 不与其他手势同时，抢占后让滚动失效
 }
+- (void)bxOnPan:(UIPanGestureRecognizer *)gr {
+    if (gr.state == UIGestureRecognizerStateBegan) {
+        // 识别即触发返回；cancelsTouchesInView 已让 App 停止滚动
+        bxTriggerBack(gr.view);
+    }
+}
 @end
 
 @implementation BXSwipePanRecognizer
@@ -126,15 +132,6 @@ static void bxInstallOnWindow(UIWindow *win) {
     [win addGestureRecognizer:gPan];
 }
 
-@implementation BXSwipePanDelegate
-- (void)bxOnPan:(UIPanGestureRecognizer *)gr {
-    if (gr.state == UIGestureRecognizerStateBegan) {
-        // 识别即触发返回；cancelsTouchesInView 已让 App 停止滚动
-        bxTriggerBack(gr.view);
-    }
-}
-@end
-
 %hook UIWindow
 - (void)makeKeyAndVisible {
     %orig;
@@ -151,9 +148,9 @@ static void bxInstallOnWindow(UIWindow *win) {
 %ctor {
     loadPrefs();
     gPanDelegate = [BXSwipePanDelegate new];
-    // 等 UI 起来后给主窗口装手势
+    // 等 UI 起来后给主窗口装手势（避开已弃用的 keyWindow）
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        UIWindow *w = [UIApplication sharedApplication].keyWindow;
-        if (w) bxInstallOnWindow(w);
+        NSArray<UIWindow *> *wins = [UIApplication sharedApplication].windows;
+        for (UIWindow *w in wins) bxInstallOnWindow(w);
     });
 }
