@@ -7,7 +7,9 @@ on:
 
 jobs:
   build:
-    runs-on: macos-latest
+    # 必须用老 macOS runner：自带 iOS 16.x/17.x SDK，编译出的 arm64e 是老 ABI，
+    # 才能在用户的 iOS 16.6 上被 dyld 加载（macos-latest 是 iOS 26 SDK，会拒载）
+    runs-on: macos-13
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,6 +17,11 @@ jobs:
       - name: Install dependencies
         run: |
           brew install dpkg coreutils xz ldid
+
+      - name: Confirm old SDK
+        run: |
+          xcode-select -p
+          xcrun --sdk iphoneos --show-sdk-version 2>/dev/null || echo "no iphoneos sdk"
 
       - name: Build tweak
         run: bash macos-build.sh
