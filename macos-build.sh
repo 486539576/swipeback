@@ -74,19 +74,17 @@ cp SwipeBackPrefs-Info.plist "$PB/Info.plist"
 cp Root.plist "$PB/Root.plist"
 cp SwipeBackPrefs.plist "$PL/SwipeBackPrefs.plist"
 
-# ---- 4. 把 substrate 依赖改成 .jbroot ----
-echo ">>> patching substrate path..."
+# ---- 4. 把 substrate 依赖改成 .jbroot（install_name_tool 精确替换，避免字符串替换把路径改坏）----
+echo ">>> patching substrate path (install_name_tool)..."
 for f in "$DL/SwipeBackApp.dylib" "$DL/SwipeBackSB.dylib"; do
-    python3 - "$f" <<'PY'
-import sys
-p = sys.argv[1]
-d = open(p, 'rb').read()
-target = b'@loader_path/.jbroot/usr/lib/libsubstrate.dylib'
-d = d.replace(b'CydiaSubstrate', target.ljust(len(b'CydiaSubstrate'), b'\x00'))
-open(p, 'wb').write(d)
-print('patched', p)
-PY
+    install_name_tool -change /Library/Frameworks/CydiaSubstrate.framework/CydiaSubstrate @loader_path/.jbroot/usr/lib/libsubstrate.dylib "$f" 2>/dev/null || true
+    install_name_tool -change CydiaSubstrate @loader_path/.jbroot/usr/lib/libsubstrate.dylib "$f" 2>/dev/null || true
+    install_name_tool -id @loader_path/.jbroot/Library/MobileSubstrate/DynamicLibraries/$(basename "$f") "$f"
+    echo ">>> patched $(basename "$f")"
 done
+echo ">>> substrate dependency now:"
+otool -L "$DL/SwipeBackApp.dylib" | grep -i substrate
+otool -L "$DL/SwipeBackSB.dylib" | grep -i substrate
 
 # ---- 5. 打 tree 包（用 GNU tar；deb 在 Linux 侧干净重打包，避开 macOS tar/ar 问题）----
 echo ">>> packaging tree..."
