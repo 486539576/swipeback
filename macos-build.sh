@@ -67,35 +67,19 @@ print('patched', p)
 PY
 done
 
-# ---- 5. 打 deb ----
-echo ">>> packaging deb..."
+# ---- 5. 打 tree 包（用 GNU tar；deb 在 Linux 侧干净重打包，避开 macOS tar/ar 问题）----
+echo ">>> packaging tree..."
 VER="0.2.87"
-CTRL="$STAGE/DEBIAN/control"
-mkdir -p "$STAGE/DEBIAN"
-cat > "$CTRL" <<EOF
-Package: com.doubao.swipeback
-Name: 上滑返回
-Version: $VER
-Architecture: iphoneos-arm64e
-Depends: mobilesubstrate | ellekit, preferenceloader, firmware (>= 14.0)
-Description: 底部角落上滑返回上一级，含灵敏度与触发区域设置
-Maintainer: Doubao
-Author: Doubao
-Section: Tweaks
-EOF
-
-cd "$STAGE"
-tar -czf control.tar.gz DEBIAN
-rm -rf DEBIAN
-find . -type f -print0 | xargs -0 tar -czf data.tar.gz
-
-cd "$ROOT"
-printf '2.0\n' > debian-binary
-mv "$STAGE/control.tar.gz" .
-mv "$STAGE/data.tar.gz" .
-
-DEB="SwipeBack_${VER}_Bkey-macOS.deb"
-rm -f "$DEB"
-ar rcs "$DEB" debian-binary control.tar.gz data.tar.gz
-echo ">>> built $DEB"
-ls -la "$DEB"
+# 确认文件树非空
+if ! find "$STAGE" -type f | grep -q .; then
+    echo ">>> ERROR: stage tree is EMPTY"; exit 1
+fi
+# 用 coreutils 的 gtar 打包（macOS BSD tar 不可靠）
+if command -v gtar >/dev/null 2>&1; then
+    TAR=gtar
+else
+    TAR=tar
+fi
+"$TAR" -czf "SwipeBack_${VER}_tree.tar.gz" -C "$STAGE" .
+echo ">>> built SwipeBack_${VER}_tree.tar.gz"
+ls -la "SwipeBack_${VER}_tree.tar.gz"
