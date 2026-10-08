@@ -33,7 +33,7 @@ if [ -n "$SDKPATH" ]; then
 fi
 make -f Makefile.prefs
 
-OBJ="$ROOT/.theos/obj/arm64e"
+OBJ="$ROOT/.theos/obj/debug/arm64e"
 
 # ---- 3. 组装文件树 ----
 STAGE="$ROOT/stage"
