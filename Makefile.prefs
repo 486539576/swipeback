@@ -8,6 +8,8 @@ SwipeBackPrefs_INSTALL_PATH = /Library/PreferenceBundles
 SwipeBackPrefs_FRAMEWORKS = UIKit Foundation
 SwipeBackPrefs_PRIVATE_FRAMEWORKS = Preferences
 SwipeBackPrefs_CFLAGS = -fobjc-arc
+# 显式指定 Preferences 私有框架的搜索路径（theos 有时找不到）
+SwipeBackPrefs_LDFLAGS = -F$(THEOS_SDK_PATH)/System/Library/PrivateFrameworks
 
 include $(THEOS)/makefiles/common.mk
 include $(THEOS_MAKE_PATH)/bundle.mk
