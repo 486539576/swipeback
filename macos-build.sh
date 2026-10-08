@@ -25,6 +25,12 @@ make -f Makefile.app
 echo ">>> make sb..."
 make -f Makefile.sb
 echo ">>> make prefs..."
+# 诊断：确认 SDK 私有框架里是否存在 Preferences
+SDKPATH="$(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null || echo '')"
+echo ">>> SDKPATH=$SDKPATH"
+if [ -n "$SDKPATH" ]; then
+    ls "$SDKPATH/System/Library/PrivateFrameworks" 2>/dev/null | grep -i '^Preferences' && echo ">>> Preferences framework PRESENT" || echo ">>> Preferences framework MISSING from SDK"
+fi
 make -f Makefile.prefs
 
 OBJ="$ROOT/.theos/obj/arm64e"
