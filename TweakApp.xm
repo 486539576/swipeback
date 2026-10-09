@@ -88,6 +88,20 @@ static void bxTriggerBack(UIView *view) {
     }
 }
 
+// ---- 收到系统层「角落上滑」Darwin 通知 -> 主线程执行返回上一级 ----
+static void bxOnBackNotify(CFNotificationCenterRef center, void *observer,
+                           CFStringRef name, const void *object, CFDictionaryRef userInfo) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSArray<UIWindow *> *wins = [UIApplication sharedApplication].windows;
+        for (UIWindow *w in wins) {
+            if (w.isKeyWindow || w.rootViewController) {
+                bxTriggerBack(w);
+                break;
+            }
+        }
+    });
+}
+
 // ---- 手势代理：决定何时接管触摸 ----
 @interface BXSwipePanRecognizer : UIPanGestureRecognizer
 @end
@@ -148,6 +162,10 @@ static void bxInstallOnWindow(UIWindow *win) {
 %ctor {
     loadPrefs();
     gPanDelegate = [BXSwipePanDelegate new];
+    // 监听系统层「角落上滑」通知，收到即返回上一级（主线程执行）
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), NULL,
+        bxOnBackNotify, CFSTR("com.doubao.swipeback.back"), NULL,
+        CFNotificationSuspensionBehaviorDeliverImmediately);
     // 等 UI 起来后给主窗口装手势（避开已弃用的 keyWindow）
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         NSArray<UIWindow *> *wins = [UIApplication sharedApplication].windows;
